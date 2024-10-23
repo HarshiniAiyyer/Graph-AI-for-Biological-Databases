@@ -1,0 +1,40 @@
+https://docs.google.com/spreadsheets/d/e/2PACX-1vTcIm0TKbpnhOqwuG9JkE4gsrdFyYxOgcSxdPoNf9gjRNiNmujGcNH1xaZrxppqNlEbJGDUWYqMo7O3/pub?gid=1992238029&single=true&output=csv
+
+
+
+
+
+LOAD CSV WITH HEADERS FROM 'file:///disease_consol.csv' AS row MERGE (n:disease {name: row.name, ko: row.ko, description: row.description, disease_category:row.disease_category, drug_recommended:row.drug_recommended});
+
+LOAD CSV WITH HEADERS FROM 'file:///drug.csv' AS row MERGE (n:drug {name: row.name, ko: row.ko});
+
+LOAD CSV WITH HEADERS FROM 'file:///pathogen.csv' AS row MERGE (n:pathogen {name: row.name, ko: row.ko, taxonomy: row.taxonomy});
+
+
+CREATE CONSTRAINT ON (n:disease) ASSERT n.ko IS UNIQUE;
+CREATE CONSTRAINT ON (n:drug) ASSERT n.ko IS UNIQUE;
+CREATE CONSTRAINT ON (n:pathogen) ASSERT n.ko IS UNIQUE;
+
+
+MATCH (p:pathogen) RETURN COUNT(DISTINCT p)
+
+MATCH (dr:drug) RETURN COUNT(DISTINCT dr)
+
+MATCH (di:disease) RETURN COUNT(DISTINCT di)
+
+MATCH (d:disease) RETURN d.disease_category, COUNT(d.disease_category) as count ORDER BY count DESC LIMIT 10;
+
+MATCH (v:pathogen) RETURN split(v.taxonomy, "; ")[0] as domain, COUNT(split(v.taxonomy, "; ")[0]) as count ORDER BY count DESC;
+
+MATCH (dr:drug) -[]->(di:disease) WHERE di.disease_category = "Nervous system disease" RETURN COUNT(DISTINCT(dr));
+
+MATCH (dr:drug) -[r:treats]->(di:disease) RETURN dr.name as drug, COUNT(r) as count ORDER BY count DESC LIMIT 10;
+
+MATCH (dr:drug) -[]->(di:disease) WHERE dr.name="Doxycycline" AND (di.disease_category = "Lung disease" or di.disease_category="Infectious disease") RETURN di.name, di.disease_category ORDER BY di.disease_category;
+
+MATCH (p:pathogen) -[r:causes]->(di:disease) RETURN p.name, COUNT(r) as count ORDER BY count DESC LIMIT 10; 
+
+MATCH res=(p:pathogen)-[r:causes]->(d:disease) WHERE p.name = "Hepatitis B virus (HBV)" RETURN res;
+
+MATCH fin=(d:drug)-[]->() WHERE d.name contains 
+"Doxycycline" RETURN fin
